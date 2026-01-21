@@ -1,0 +1,18 @@
+{
+  "name": "env",
+  "version": "1.0.0",
+  "description": "Server with Express, WebSocket, and QR code generation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2",
+    "cors": "^2.8.5",
+    "qrcode": "^1.5.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

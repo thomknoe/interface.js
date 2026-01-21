@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>WOZ Surface</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+    <script src="/static/websocket-client.js"></script>
+    <link rel="stylesheet" href="/static/interface.css" />
+</head>
+
+<body>
+    <header class="top">
+        <nav class="tabs" aria-label="tabs">
+            <button id="tabWizard" class="tab active" type="button">Wizard</button>
+            <button id="tabInterface" class="tab" type="button">Interface</button>
+        </nav>
+    </header>
+
+    <main class="wrap">
+        <!-- Wizard / graphical patch -->
+        <section id="panelWizard" class="panel">
+            <div class="wizardLayout">
+                <div class="card">
+                    <div class="cardTitle">Surface</div>
+
+                    <div class="row">
+                        <label>Cols</label><input id="cols" type="number" min="4" max="16" value="12" />
+                        <label>Rows</label><input id="rows" type="number" min="4" max="16" value="12" />
+                    </div>
+
+                    <div class="row">
+                        <label>Theme</label>
+                        <select id="themeMode">
+                            <option value="space">Space</option>
+                            <option value="glitch">Glitch</option>
+                            <option value="poem">Poem</option>
+                            <option value="network">Network</option>
+                            <option value="halftone">Halftone</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <label>Accent</label>
+                        <select id="accentPreset">
+                            <option value="auto">Auto</option>
+                            <option value="cool">Cool</option>
+                            <option value="warm">Warm</option>
+                            <option value="mint">Mint</option>
+                            <option value="magenta">Magenta</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="cardTitle">Patch Grid</div>
+                    <div id="wizardGrid" class="wizGrid"></div>
+                </div>
+
+                <div class="card">
+                    <div class="cardTitle">Selected</div>
+                    <div id="noneSelected" class="tiny">Nothing selected.</div>
+
+                    <div id="selectedPanel" class="hidden">
+                        <div class="row">
+                            <label>Type</label>
+                            <select id="selType">
+                                <option value="PhosphorScreen">PhosphorScreen</option>
+                                <option value="ReadoutScreen">ReadoutScreen</option>
+                                <option value="GlyphTag">GlyphTag</option>
+                                <option value="ActionButton">ActionButton</option>
+                                <option value="ToggleSwitch">ToggleSwitch</option>
+                                <option value="FaderBank">Slider</option>
+                                <option value="RotaryDial">RotaryDial</option>
+                                <option value="Arrow">Arrow</option>
+                                <option value="IndicatorPips">IndicatorPips</option>
+                            </select>
+                        </div>
+
+                        <div class="row" id="selChannelRow">
+                            <label>Channel</label>
+                            <select id="selChannel">
+                                <option value="teal">Teal</option>
+                                <option value="magenta">Magenta</option>
+                            </select>
+                        </div>
+
+                        <div class="row" id="selPositionRow">
+                            <label>X</label><input id="selX" type="number" min="0" value="0" style="width:50px;" />
+                            <label>Y</label><input id="selY" type="number" min="0" value="0" style="width:50px;" />
+                        </div>
+
+                        <div class="row" id="selSizeRow">
+                            <label>W</label><input id="selW" type="number" min="1" value="1" style="width:50px;" />
+                            <label>H</label><input id="selH" type="number" min="1" value="1" style="width:50px;" />
+                        </div>
+
+                        <div class="row hidden" id="selModeRow">
+                            <label>Mode</label>
+                            <select id="selMode">
+                                <option value="particles">Particles</option>
+                                <option value="flocking">Flocking</option>
+                                <option value="contour">Contour</option>
+                                <option value="grid">Grid</option>
+                                <option value="blank">Blank</option>
+                            </select>
+                        </div>
+
+                        <div class="row hidden" id="selPayloadRow">
+                            <label>JSON Payload</label>
+                            <textarea id="selPayload" rows="3"
+                                style="width:100%; font-size:9px; font-family:monospace; border:1px solid var(--panelBorder); background:var(--chassis); color:var(--fg); padding:6px 8px;"
+                                placeholder='{"action": "example", "data": {}}'></textarea>
+                            <div style="font-size:8px; color:var(--fg); opacity:0.5; margin-top:4px;">
+                                Optional JSON payload to send with button events
+                            </div>
+                        </div>
+
+                        <div class="row hidden" id="selLinesRow">
+                            <label>Lines</label>
+                            <textarea id="selLines" rows="4"
+                                style="width:100%; font-size:9px; font-family:monospace; border:1px solid var(--panelBorder); background:var(--chassis); color:var(--fg); padding:6px 8px;"></textarea>
+                        </div>
+
+                        <div class="row hidden" id="selFaderCountRow">
+                            <label>Faders</label>
+                            <input id="selFaderCount" type="number" min="1" max="8" value="3" style="width:60px;" />
+                        </div>
+
+                        <div class="row hidden" id="selOrientationRow">
+                            <label>Orientation</label>
+                            <select id="selOrientation">
+                                <option value="horizontal">Horizontal</option>
+                                <option value="vertical">Vertical</option>
+                            </select>
+                        </div>
+
+                        <div class="row hidden" id="selLabelRow">
+                            <label>Label</label>
+                            <select id="selLabel">
+                                <option value="THT/31">THT/31</option>
+                                <option value="SYS/01">SYS/01</option>
+                                <option value="NET/12">NET/12</option>
+                                <option value="CTL/05">CTL/05</option>
+                                <option value="IO/08">IO/08</option>
+                                <option value="PRC/22">PRC/22</option>
+                                <option value="DBG/99">DBG/99</option>
+                                <option value="CUSTOM">Custom</option>
+                            </select>
+                        </div>
+
+                        <div class="row hidden" id="selCustomLabelRow">
+                            <label>Custom Label</label>
+                            <input id="selCustomLabel" type="text" style="width:100px;" />
+                        </div>
+
+                        <div class="row hidden" id="selValueRow">
+                            <label>Value</label>
+                            <input id="selValue" type="range" min="0" max="1" step="0.01" value="0.5" />
+                        </div>
+
+                        <div class="row">
+                            <button id="deleteSel" class="btn ghost" type="button">Delete</button>
+                            <button id="toggleLock" class="btn ghost" type="button">Lock/Unlock</button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <button id="clearAll" class="btn ghost" type="button">Clear</button>
+                        <button id="seed" class="btn ghost" type="button">Seed</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interface / phone -->
+        <section id="panelInterface" class="panel hidden">
+            <div class="phoneFrame">
+                <div id="surfaceRoot" class="surfaceRoot" aria-label="control surface"></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/interface.js"></script>
+    <script>
+        function setTab(which) {
+            const wiz = which === "wizard";
+            const interf = which === "interface";
+            
+            document.getElementById("tabWizard").classList.toggle("active", wiz);
+            document.getElementById("tabInterface").classList.toggle("active", interf);
+            
+            document.getElementById("panelWizard").classList.toggle("hidden", !wiz);
+            document.getElementById("panelInterface").classList.toggle("hidden", !interf);
+        }
+    </script>
+</body>
+
+</html>

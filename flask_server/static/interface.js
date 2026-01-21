@@ -133,6 +133,9 @@ class EventManager {
       eventData.payload = payload;
     }
 
+    // Debug logging
+    // Send event to server via socket
+    
     this.socket.emit("user:module_event", eventData);
   }
 
@@ -426,15 +429,24 @@ const $ = (id) => document.getElementById(id);
     { passive: false }
   );
 
-  // Disable pinch zoom
+  // Disable pinch zoom (but allow form elements to work)
   document.addEventListener("gesturestart", function (e) {
-    e.preventDefault();
+    // Don't prevent default on form elements
+    if (!isInteractiveElement(e.target)) {
+      e.preventDefault();
+    }
   });
   document.addEventListener("gesturechange", function (e) {
-    e.preventDefault();
+    // Don't prevent default on form elements
+    if (!isInteractiveElement(e.target)) {
+      e.preventDefault();
+    }
   });
   document.addEventListener("gestureend", function (e) {
-    e.preventDefault();
+    // Don't prevent default on form elements
+    if (!isInteractiveElement(e.target)) {
+      e.preventDefault();
+    }
   });
 })();
 
@@ -453,9 +465,14 @@ const $ = (id) => document.getElementById(id);
         // Small delay to ensure hover state is applied (if browser applies it)
         setTimeout(function () {
           // Force remove hover by briefly removing and re-adding the element
-          // or by blurring any focused elements
+          // or by blurring any focused elements (but not form elements)
           if (document.activeElement && document.activeElement.blur) {
-            document.activeElement.blur();
+            const activeEl = document.activeElement;
+            if (activeEl.tagName !== "INPUT" && 
+                activeEl.tagName !== "SELECT" && 
+                activeEl.tagName !== "TEXTAREA") {
+              activeEl.blur();
+            }
           }
 
           // For interactive elements, ensure they don't have hover state
@@ -484,10 +501,13 @@ const $ = (id) => document.getElementById(id);
     document.addEventListener(
       "touchstart",
       function (e) {
-        // Blur any currently focused element to clear its hover state
+        // Don't blur form elements - allow them to be focused
         if (
           document.activeElement &&
-          document.activeElement !== document.body
+          document.activeElement !== document.body &&
+          document.activeElement.tagName !== "INPUT" &&
+          document.activeElement.tagName !== "SELECT" &&
+          document.activeElement.tagName !== "TEXTAREA"
         ) {
           document.activeElement.blur();
         }
@@ -521,6 +541,19 @@ const socket = io();
 let state = null;
 
 // Status indicator removed
+
+// Socket connection debugging
+socket.on("connect", () => {
+  // Socket connected
+});
+
+socket.on("disconnect", () => {
+  console.log("Socket disconnected from server");
+});
+
+socket.on("connect_error", (error) => {
+  console.error("Socket connection error:", error);
+});
 
 // Initialize OOP framework
 const stateManager = new StateManager(socket);
@@ -1391,7 +1424,14 @@ function buildWizardCanvas(cols, rows, modules) {
     const cell = grid.children[m.y * cols + m.x];
     if (cell) {
       cell.style.display = "block";
-      cell.classList.add("sel");
+      // Remove 'occupied' class from module cells - they should be clickable
+      cell.classList.remove("occupied");
+      // Only add 'sel' class if this is the currently selected module
+      if (m.id === selectedModuleId) {
+        cell.classList.add("sel");
+      } else {
+        cell.classList.remove("sel");
+      }
       const w = m.w || 1;
       const h = m.h || 1;
       cell.style.gridColumn = `span ${w}`;
@@ -1488,6 +1528,7 @@ function refreshSelectedPanel() {
   const mode = state?.surface?.themeMode || "space";
   updateChannelNames(mode);
 
+  // Set all values first
   $("selChannel").value = m.styleChannel || "magenta";
   $("selX").value = m.x ?? 0;
   $("selY").value = m.y ?? 0;
@@ -1495,22 +1536,169 @@ function refreshSelectedPanel() {
   $("selH").value = m.h ?? 1;
   $("selValue").value = m.value ?? 0.5;
 
-  // Type-specific properties
+  // Define attribute visibility for each button type
+  // Format: { type: { attributeRow: show/hide } }
+  const attributeVisibility = {
+    "PhosphorScreen": {
+      "selChannelRow": true,
+      "selPositionRow": true,
+      "selSizeRow": true,
+      "selValueRow": false,
+      "selModeRow": true,
+      "selPayloadRow": false,
+      "selLinesRow": false,
+      "selFaderCountRow": false,
+      "selOrientationRow": false,
+      "selLabelRow": false,
+      "selCustomLabelRow": false,
+    },
+    "ActionButton": {
+      "selChannelRow": true,
+      "selPositionRow": true,
+      "selSizeRow": true,
+      "selValueRow": false,
+      "selModeRow": false,
+      "selPayloadRow": true,
+      "selLinesRow": false,
+      "selFaderCountRow": false,
+      "selOrientationRow": false,
+      "selLabelRow": false,
+      "selCustomLabelRow": false,
+    },
+    "ReadoutScreen": {
+      "selChannelRow": true,
+      "selPositionRow": true,
+      "selSizeRow": true,
+      "selValueRow": false,
+      "selModeRow": false,
+      "selPayloadRow": false,
+      "selLinesRow": true,
+      "selFaderCountRow": false,
+      "selOrientationRow": false,
+      "selLabelRow": false,
+      "selCustomLabelRow": false,
+    },
+    "GlyphTag": {
+      "selChannelRow": true,
+      "selPositionRow": true,
+      "selSizeRow": false,
+      "selValueRow": false,
+      "selModeRow": false,
+      "selPayloadRow": false,
+      "selLinesRow": false,
+      "selFaderCountRow": false,
+      "selOrientationRow": false,
+      "selLabelRow": true,
+      "selCustomLabelRow": true, // Will be shown conditionally based on label value
+    },
+    "ToggleSwitch": {
+      "selChannelRow": true,
+      "selPositionRow": true,
+      "selSizeRow": false,
+      "selValueRow": true,
+      "selModeRow": false,
+      "selPayloadRow": true,
+      "selLinesRow": false,
+      "selFaderCountRow": false,
+      "selOrientationRow": false,
+      "selLabelRow": false,
+      "selCustomLabelRow": false,
+    },
+    "FaderBank": {
+      "selChannelRow": true,
+      "selPositionRow": true,
+      "selSizeRow": true,
+      "selValueRow": true,
+      "selModeRow": false,
+      "selPayloadRow": false,
+      "selLinesRow": false,
+      "selFaderCountRow": false,
+      "selOrientationRow": true,
+      "selLabelRow": false,
+      "selCustomLabelRow": false,
+    },
+    "RotaryDial": {
+      "selChannelRow": true,
+      "selPositionRow": true,
+      "selSizeRow": true,
+      "selValueRow": true,
+      "selModeRow": false,
+      "selPayloadRow": false,
+      "selLinesRow": false,
+      "selFaderCountRow": false,
+      "selOrientationRow": false,
+      "selLabelRow": false,
+      "selCustomLabelRow": false,
+    },
+    "Arrow": {
+      "selChannelRow": true,
+      "selPositionRow": true,
+      "selSizeRow": false,
+      "selValueRow": false,
+      "selModeRow": false,
+      "selPayloadRow": true,
+      "selLinesRow": false,
+      "selFaderCountRow": false,
+      "selOrientationRow": true,
+      "selLabelRow": false,
+      "selCustomLabelRow": false,
+    },
+    "IndicatorPips": {
+      "selChannelRow": true,
+      "selPositionRow": true,
+      "selSizeRow": false,
+      "selValueRow": true,
+      "selModeRow": false,
+      "selPayloadRow": false,
+      "selLinesRow": false,
+      "selFaderCountRow": false,
+      "selOrientationRow": false,
+      "selLabelRow": false,
+      "selCustomLabelRow": false,
+    },
+  };
+
+  // Get visibility map for current type, default to ActionButton if not found
+  const visibility = attributeVisibility[m.type] || attributeVisibility["ActionButton"];
+
+  // Show/hide all attribute rows based on type
+  // First, hide ALL rows, then show only the ones that should be visible
+  const allRowIds = [
+    "selChannelRow", "selPositionRow", "selSizeRow", "selValueRow",
+    "selModeRow", "selPayloadRow", "selLinesRow", "selFaderCountRow",
+    "selOrientationRow", "selLabelRow", "selCustomLabelRow"
+  ];
+  
+  // Hide all rows first
+  allRowIds.forEach((rowId) => {
+    const row = $(rowId);
+    if (row) {
+      row.classList.add("hidden");
+    } else {
+      // Row element not found - may be expected for some button types
+    }
+  });
+  
+  // Then show only the ones that should be visible
+  Object.keys(visibility).forEach((rowId) => {
+    const row = $(rowId);
+    if (row && visibility[rowId]) {
+      row.classList.remove("hidden");
+    }
+  });
+
+  // Type-specific property handling
   if (m.type === "PhosphorScreen") {
     // Ensure mode is set - default to particles if not set
     const mode = m.mode || "particles";
     m.mode = mode; // Ensure it's stored in the module
     $("selMode").value = mode;
-    $("selModeRow").classList.remove("hidden");
-  } else {
-    $("selModeRow").classList.add("hidden");
   }
+  
   if (m.type === "ReadoutScreen") {
     $("selLines").value = (m.lines || []).join("\n");
-    $("selLinesRow").classList.remove("hidden");
-  } else {
-    $("selLinesRow").classList.add("hidden");
   }
+  
   if (m.type === "FaderBank") {
     // Determine orientation: use stored value, or infer from dimensions, or default to horizontal
     let orientation = m.orientation;
@@ -1526,7 +1714,6 @@ function refreshSelectedPanel() {
     }
     m.orientation = orientation; // Store it
     $("selOrientation").value = orientation;
-    $("selOrientationRow").classList.remove("hidden");
     // Update orientation options for FaderBank
     const selOrientation = $("selOrientation");
     selOrientation.innerHTML =
@@ -1540,14 +1727,12 @@ function refreshSelectedPanel() {
     }
     const orientation = m.orientation;
     $("selOrientation").value = orientation;
-    $("selOrientationRow").classList.remove("hidden");
     // Update orientation options for Arrow
     const selOrientation = $("selOrientation");
     selOrientation.innerHTML =
       '<option value="up">Up</option><option value="right">Right</option><option value="down">Down</option><option value="left">Left</option>';
-  } else {
-    $("selOrientationRow").classList.add("hidden");
   }
+  
   if (m.type === "GlyphTag") {
     const label = m.label || "THT/31";
     if (
@@ -1568,21 +1753,12 @@ function refreshSelectedPanel() {
       $("selCustomLabel").value = label;
       $("selCustomLabelRow").classList.remove("hidden");
     }
-    $("selLabelRow").classList.remove("hidden");
-  } else {
-    $("selLabelRow").classList.add("hidden");
-    $("selCustomLabelRow").classList.add("hidden");
   }
-  // FaderBank is now a single slider, no fader count needed
-  $("selFaderCountRow").classList.add("hidden");
 
   // Show payload input for interactive components (buttons, toggles, etc.)
   if (m.type === "ActionButton" || m.type === "ToggleSwitch" || m.type === "Arrow") {
-    $("selPayloadRow").classList.remove("hidden");
     const payloadText = m.payload ? (typeof m.payload === "string" ? m.payload : JSON.stringify(m.payload, null, 2)) : "";
     $("selPayload").value = payloadText;
-  } else {
-    $("selPayloadRow").classList.add("hidden");
   }
 
   // Enable/disable width/height inputs based on component type
@@ -2711,398 +2887,6 @@ function mountPhosphorScreen(el, m) {
 
 // Custom image mode removed - no longer supported
 // Function removed for cleaner codebase
-  // Clear any existing canvas to ensure clean mount
-  const existingCanvas = content.querySelector(".customCanvas");
-  if (existingCanvas) {
-    // Cancel any running animations
-    const existingAnimationId = existingCanvas.dataset.animationId;
-    if (existingAnimationId) {
-      cancelAnimationFrame(parseInt(existingAnimationId));
-    }
-    // Check if image has changed - if so, force complete remount
-    const existingImageUrl = existingCanvas.dataset.imageUrl || "";
-    const newImageUrl = m.customImage || "";
-    if (existingImageUrl !== newImageUrl) {
-      // Image changed - remove old canvas completely
-      existingCanvas.remove();
-    } else {
-      // Same image - might be a remount due to layout change, still remove to ensure clean state
-      existingCanvas.remove();
-    }
-  }
-
-  const canvas = document.createElement("canvas");
-  canvas.className = "customCanvas";
-  // Store the image URL in a data attribute to track changes
-  canvas.dataset.imageUrl = m.customImage || "";
-  // Store module ID to track which module this canvas belongs to
-  canvas.dataset.moduleId = m.id || "";
-  // Store timestamp to force updates on mobile
-  canvas.dataset.mountTime = Date.now().toString();
-  content.appendChild(canvas);
-
-  // Force a reflow to ensure canvas is properly laid out
-  // This is especially important for mobile devices
-  void canvas.offsetHeight;
-
-  let ctx = null;
-  let pixelData = null; // Store pixelated grayscale data
-  let animationFrameId = null;
-
-  function initCanvas() {
-    const w = content.offsetWidth || content.clientWidth;
-    const h = content.offsetHeight || content.clientHeight;
-
-    if (w === 0 || h === 0) return false;
-
-    const dpr = window.devicePixelRatio || 1;
-
-    // Always re-initialize context to ensure it's valid
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-
-    ctx = canvas.getContext("2d");
-    if (!ctx) return false;
-
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr, dpr);
-
-    return true;
-  }
-
-  function processImage(img) {
-    // Ensure canvas is initialized
-    if (!initCanvas()) {
-      // Retry after a short delay if dimensions aren't ready
-      setTimeout(() => processImage(img), 50);
-      return;
-    }
-
-    const w = content.offsetWidth || content.clientWidth;
-    const h = content.offsetHeight || content.clientHeight;
-
-    if (w === 0 || h === 0) return;
-
-    // Create offscreen canvas to process image
-    const processCanvas = document.createElement("canvas");
-    processCanvas.width = w;
-    processCanvas.height = h;
-    const processCtx = processCanvas.getContext("2d");
-
-    // Stretch image to fill entire canvas (no aspect ratio preservation)
-    processCtx.drawImage(img, 0, 0, w, h);
-
-    // Get image data
-    const imageData = processCtx.getImageData(0, 0, w, h);
-    const data = imageData.data;
-
-    // Pixelate: reduce resolution significantly for CRT-like discrete effect with gaps
-    // More aggressive pixelation for stronger CRT effect
-    const pixelSize = Math.max(4, Math.floor(Math.min(w, h) / 40)); // Larger pixels for more pixelation
-    const step = 3; // Larger step size creates more pronounced gaps (CRT square effect)
-    const pixelCols = Math.floor(w / step);
-    const pixelRows = Math.floor(h / step);
-
-    // Create pixelated grayscale data with discrete sampling (step-based like contours)
-    pixelData = new Float32Array(pixelCols * pixelRows);
-
-    for (let py = 0; py < pixelRows; py++) {
-      for (let px = 0; px < pixelCols; px++) {
-        // Sample at step intervals (creates gaps like contours)
-        const sampleX = Math.floor(px * step);
-        const sampleY = Math.floor(py * step);
-
-        // Only sample if within bounds
-        if (sampleX < w && sampleY < h) {
-          const idx = (sampleY * w + sampleX) * 4;
-
-          if (idx < data.length) {
-            const r = data[idx];
-            const g = data[idx + 1];
-            const b = data[idx + 2];
-
-            // Convert to grayscale - no filters, pass through as-is
-            const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-
-            // Convert to normalized grayscale - no contrast adjustment, just normalize
-            let normalized = gray / 255;
-
-            // Apply darkening curve: make image darker and darker
-            // Use inverse gamma to darken (values > 1.0 darken the image)
-            normalized = Math.pow(normalized, 1.4); // Darkening curve
-
-            // Use darkened grayscale value
-            pixelData[py * pixelCols + px] = Math.max(
-              0,
-              Math.min(1, normalized)
-            );
-          }
-        } else {
-          pixelData[py * pixelCols + px] = 0;
-        }
-      }
-    }
-
-    // Store dimensions for drawing
-    pixelData.width = pixelCols;
-    pixelData.height = pixelRows;
-    pixelData.pixelSize = pixelSize;
-    pixelData.step = step;
-
-    // Debug: Count how many pixels will be visible
-    let visibleCount = 0;
-    for (let i = 0; i < pixelData.length; i++) {
-      if (pixelData[i] > 0.05) visibleCount++;
-    }
-    console.log(
-      `Custom image: ${visibleCount} visible pixels out of ${pixelData.length}`
-    );
-
-    drawPixels();
-  }
-
-  function drawPixels() {
-    if (!pixelData || !pixelData.width || !pixelData.height) {
-      return;
-    }
-
-    // Ensure canvas is initialized
-    if (!initCanvas() || !ctx) {
-      return;
-    }
-
-    const w = content.offsetWidth || content.clientWidth;
-    const h = content.offsetHeight || content.clientHeight;
-
-    if (w === 0 || h === 0) return;
-
-    // Clear canvas with dark background
-    ctx.fillStyle = "rgba(0, 0, 0, 1)";
-    ctx.fillRect(0, 0, w, h);
-
-    // Get theme color
-    const isHalftone = document.body.classList.contains("theme-halftone");
-    const isPoem = document.body.classList.contains("theme-poem");
-    const isNetwork = document.body.classList.contains("theme-network");
-    const isGlitch = document.body.classList.contains("theme-glitch");
-
-    let r, g, b;
-    if (isHalftone) {
-      r = 255;
-      g = 255;
-      b = 255; // White for halftone
-    } else if (isPoem) {
-      r = 74;
-      g = 144;
-      b = 226; // Blue for poem
-    } else if (isNetwork) {
-      r = 135;
-      g = 206;
-      b = 235; // Light blue for network
-    } else if (isGlitch) {
-      r = 255;
-      g = 140;
-      b = 0; // Orange for glitch
-    } else {
-      r = 0;
-      g = 255;
-      b = 220; // Teal for space (default)
-    }
-
-    const pixelCols = pixelData.width;
-    const pixelRows = pixelData.height;
-    const pixelSize = pixelData.pixelSize;
-    const step = pixelData.step;
-
-    // Draw pixels as discrete square pixels with gaps (like contour pattern)
-    for (let py = 0; py < pixelRows; py++) {
-      for (let px = 0; px < pixelCols; px++) {
-        const intensity = pixelData[py * pixelCols + px];
-
-        // Skip very dark pixels (background) - low threshold for darker effect
-        if (intensity < 0.08) continue;
-
-        // Add subtle grain/noise for discrete CRT effect
-        const grain = (Math.random() - 0.5) * 0.08; // ±4% variation for subtle effect
-        const grainyIntensity = Math.max(0, Math.min(1, intensity + grain));
-
-        // Square pixel size for CRT effect - make squares more pronounced
-        // Square size should be smaller than step to create visible gaps (CRT grid effect)
-        const squareSize = Math.max(2, Math.floor(pixelSize * 0.7)); // More pronounced squares with gaps
-
-        // Position at step intervals (creates CRT-like grid gaps)
-        const x = px * step;
-        const y = py * step;
-
-        // Draw square pixel with theme color - darker and darker (especially on desktop)
-        // Use lower alpha values to make image darker overall
-        // Scale down intensity further to darken the image more aggressively
-        const darkenedIntensity = grainyIntensity * 0.5; // Darken by 50% (was 40%)
-        // Even lower alpha range for darker effect on desktop
-        const alpha = Math.max(0.15, Math.min(0.6, darkenedIntensity)); // Lower alpha range: 0.15-0.6 (was 0.2-0.7)
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        ctx.fillRect(Math.floor(x), Math.floor(y), squareSize, squareSize);
-
-        // Add subtle glow only for very bright pixels (minimal phosphor effect)
-        // Only show glow for brightest pixels to maintain darker overall appearance
-        if (grainyIntensity > 0.8) {
-          ctx.shadowBlur = Math.max(1, squareSize * 0.25);
-          ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${alpha * 0.3})`;
-          ctx.fillRect(Math.floor(x), Math.floor(y), squareSize, squareSize);
-          ctx.shadowBlur = 0;
-        }
-      }
-    }
-  }
-
-  function animate() {
-    // Re-draw with new grain each frame for animated grain effect
-    drawPixels();
-    animationFrameId = requestAnimationFrame(animate);
-    // Store animation ID on canvas for cleanup
-    canvas.dataset.animationId = animationFrameId.toString();
-  }
-
-  // Load image from module data if available
-  // Always reload when mountCustomMode is called (handles image updates)
-  if (
-    m.customImage &&
-    typeof m.customImage === "string" &&
-    m.customImage.length > 0
-  ) {
-    // Check if image has changed - if so, force reload
-    // Always treat as changed if dataset doesn't match or is empty (forces reload on mobile)
-    const currentImageUrl = canvas.dataset.imageUrl || "";
-    const imageChanged =
-      currentImageUrl !== m.customImage || currentImageUrl === "";
-    canvas.dataset.imageUrl = m.customImage;
-    // Store a timestamp to force reload on mobile
-    canvas.dataset.lastUpdate = Date.now().toString();
-
-    // Clear any existing animation
-    if (animationFrameId !== null) {
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = null;
-    }
-    pixelData = null; // Clear old pixel data
-
-    // Clear canvas to ensure fresh start
-    if (ctx) {
-      const w = content.offsetWidth || content.clientWidth;
-      const h = content.offsetHeight || content.clientHeight;
-      if (w > 0 && h > 0) {
-        ctx.fillStyle = "rgba(0, 0, 0, 1)";
-        ctx.fillRect(0, 0, w, h);
-      }
-    }
-
-    // Initialize canvas first
-    const tryLoad = () => {
-      if (!initCanvas()) {
-        // Retry if canvas isn't ready - but limit retries
-        setTimeout(tryLoad, 50);
-        return;
-      }
-
-      // Always load the current image from m.customImage (handles updates)
-      const imageToLoad = m.customImage;
-
-      const img = new Image();
-      img.crossOrigin = "anonymous"; // Handle CORS if needed
-      img.onload = () => {
-        // Only process if this is still the current image (prevents race conditions)
-        if (
-          m.customImage === imageToLoad &&
-          canvas.dataset.imageUrl === imageToLoad
-        ) {
-          // Clear pixel data before processing new image
-          pixelData = null;
-          processImage(img);
-          // Start animation loop for grain effect immediately
-          if (animationFrameId !== null) {
-            cancelAnimationFrame(animationFrameId);
-          }
-          animate();
-        }
-      };
-      img.onerror = (e) => {
-        console.error("Failed to load custom image:", e);
-        // If image fails to load, show placeholder
-        if (initCanvas() && ctx) {
-          const w = content.offsetWidth || content.clientWidth;
-          const h = content.offsetHeight || content.clientHeight;
-          if (w > 0 && h > 0) {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-            ctx.fillRect(0, 0, w, h);
-          }
-        }
-      };
-      // Load the image - always add cache-busting to ensure fresh load on all devices
-      // This is especially important for mobile devices which may cache more aggressively
-      // Always use timestamp for cache busting on mobile, or if image changed
-      const cacheBuster =
-        imageChanged || !canvas.dataset.lastLoadTime
-          ? Date.now()
-          : parseInt(canvas.dataset.lastLoadTime) || Date.now();
-      canvas.dataset.lastLoadTime = cacheBuster.toString();
-      // For data URLs, always add a cache-busting fragment to force reload
-      // Mobile browsers can cache data URLs, so we need to force reload
-      if (m.customImage.includes("data:")) {
-        // Add a fragment with timestamp to force reload of data URLs on mobile
-        img.src = m.customImage.split("#")[0] + "#t=" + cacheBuster;
-      } else {
-        // For other URLs, add query parameter
-        img.src =
-          m.customImage +
-          (m.customImage.includes("?") ? "&" : "?") +
-          "t=" +
-          cacheBuster;
-      }
-    };
-
-    // Try loading immediately, with retry if needed
-    tryLoad();
-  } else {
-    // No image yet - show placeholder
-    if (initCanvas() && ctx) {
-      const w = content.offsetWidth || content.clientWidth;
-      const h = content.offsetHeight || content.clientHeight;
-      if (w > 0 && h > 0) {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-        ctx.fillRect(0, 0, w, h);
-      }
-    }
-  }
-
-  // Resize observer - only reprocess image on significant size changes
-  let lastObservedWidth = 0;
-  let lastObservedHeight = 0;
-  const resizeObserver = new ResizeObserver(() => {
-    const w = content.offsetWidth || content.clientWidth;
-    const h = content.offsetHeight || content.clientHeight;
-
-    // Only reprocess if size changed significantly (prevents constant re-processing)
-    if (
-      m.customImage &&
-      (Math.abs(w - lastObservedWidth) > 10 ||
-        Math.abs(h - lastObservedHeight) > 10)
-    ) {
-      lastObservedWidth = w;
-      lastObservedHeight = h;
-
-      const img = new Image();
-      img.onload = () => {
-        processImage(img);
-        // Restart animation if it was running
-        if (animationFrameId === null) {
-          animate();
-        }
-      };
-      img.src = m.customImage;
-    }
-  });
 // Flocking mode - boids algorithm with filled triangles
 function mountFlockingMode(content, m) {
   const canvas = document.createElement("canvas");
@@ -3593,7 +3377,7 @@ function mountActionButton(el, m) {
   let touchHandled = false;
   let touchHandledTime = 0;
 
-  // Parse payload from module configuration
+  // Parse payload from module configuration, or use default
   let payload = null;
   if (m.payload) {
     try {
@@ -3601,6 +3385,14 @@ function mountActionButton(el, m) {
     } catch (e) {
       console.warn(`Invalid JSON payload for button ${m.id}:`, e);
     }
+  }
+  // Use default payload if none configured
+  if (!payload) {
+    payload = {
+      message: `Button ${m.id} interacted`,
+      type: "ActionButton",
+      timestamp: new Date().toISOString()
+    };
   }
 
   // Shared function to handle button toggle
@@ -3668,7 +3460,13 @@ function mountActionButton(el, m) {
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
       el.classList.add("pressed");
-      sendEvent(m.id, "press", 1, payload);
+      // Always send payload (with default if none configured)
+      const pressPayload = payload || {
+        message: `Button ${m.id} pressed`,
+        type: "ActionButton",
+        timestamp: new Date().toISOString()
+      };
+      sendEvent(m.id, "press", 1, pressPayload);
     },
     { passive: true }
   );
@@ -3714,7 +3512,13 @@ function mountActionButton(el, m) {
   el.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     el.classList.add("pressed");
-    sendEvent(m.id, "press", 1, payload);
+    // Always send payload (with default if none configured)
+    const pressPayload = payload || {
+      message: `Button ${m.id} pressed`,
+      type: "ActionButton",
+      timestamp: new Date().toISOString()
+    };
+    sendEvent(m.id, "press", 1, pressPayload);
   });
 
   el.addEventListener("pointerup", (e) => {
@@ -3752,7 +3556,7 @@ function mountToggleSwitch(el, m) {
 
   if (m.locked) return;
 
-  // Parse payload from module configuration
+  // Parse payload from module configuration, or use default
   let payload = null;
   if (m.payload) {
     try {
@@ -3760,6 +3564,14 @@ function mountToggleSwitch(el, m) {
     } catch (e) {
       console.warn(`Invalid JSON payload for toggle ${m.id}:`, e);
     }
+  }
+  // Use default payload if none configured
+  if (!payload) {
+    payload = {
+      message: `Toggle ${m.id} interacted`,
+      type: "ToggleSwitch",
+      timestamp: new Date().toISOString()
+    };
   }
 
   el.addEventListener("click", () => {
@@ -3770,8 +3582,13 @@ function mountToggleSwitch(el, m) {
     } else {
       playEtherealClick(392, 0.2);
     }
-    // Send event with JSON payload if configured
-    sendEvent(m.id, "toggle", el.classList.contains("on") ? 1 : 0, payload);
+    // Always send payload (with default if none configured)
+    const togglePayload = payload || {
+      message: `Toggle ${m.id} toggled`,
+      type: "ToggleSwitch",
+      timestamp: new Date().toISOString()
+    };
+    sendEvent(m.id, "toggle", el.classList.contains("on") ? 1 : 0, togglePayload);
   });
 }
 
@@ -3822,6 +3639,24 @@ function mountFaderBank(el, m) {
 
   if (m.locked) return;
 
+  // Parse payload from module configuration, or use default
+  let payload = null;
+  if (m.payload) {
+    try {
+      payload = typeof m.payload === "string" ? JSON.parse(m.payload) : m.payload;
+    } catch (e) {
+      console.warn(`Invalid JSON payload for slider ${m.id}:`, e);
+    }
+  }
+  // Use default payload if none configured
+  if (!payload) {
+    payload = {
+      message: `Slider ${m.id} interacted`,
+      type: "Slider",
+      timestamp: new Date().toISOString()
+    };
+  }
+
   let currentChord = null;
 
   function setFromPosition(clientX, clientY, isInitial = false) {
@@ -3846,8 +3681,14 @@ function mountFaderBank(el, m) {
       currentChord.updateValue(n);
     }
 
-    // Send event (but throttle during drag)
-    sendEvent(m.id, "change", v);
+    // Always send payload (with default if none configured)
+    const changePayload = payload || {
+      message: `Slider ${m.id} changed`,
+      type: "Slider",
+      value: v,
+      timestamp: new Date().toISOString()
+    };
+    sendEvent(m.id, "change", v, changePayload);
   }
 
   el.addEventListener("pointerdown", (e) => {
@@ -3868,8 +3709,14 @@ function mountFaderBank(el, m) {
       currentChord.stop();
       currentChord = null;
     }
-    // Send final value on release
-    sendEvent(m.id, "change", v);
+    // Always send payload (with default if none configured)
+    const releasePayload = payload || {
+      message: `Slider ${m.id} released`,
+      type: "Slider",
+      value: v,
+      timestamp: new Date().toISOString()
+    };
+    sendEvent(m.id, "change", v, releasePayload);
   });
 }
 
@@ -3906,6 +3753,24 @@ function mountRotaryDial(el, m) {
   update();
 
   if (m.locked) return;
+
+  // Parse payload from module configuration, or use default
+  let payload = null;
+  if (m.payload) {
+    try {
+      payload = typeof m.payload === "string" ? JSON.parse(m.payload) : m.payload;
+    } catch (e) {
+      console.warn(`Invalid JSON payload for dial ${m.id}:`, e);
+    }
+  }
+  // Use default payload if none configured
+  if (!payload) {
+    payload = {
+      message: `Dial ${m.id} interacted`,
+      type: "RotaryDial",
+      timestamp: new Date().toISOString()
+    };
+  }
 
   let startAngle = null;
   let startV = null;
@@ -3959,7 +3824,14 @@ function mountRotaryDial(el, m) {
       currentChord.updateValue(v);
     }
 
-    sendEvent(m.id, "change", v);
+    // Always send payload (with default if none configured)
+    const changePayload = payload || {
+      message: `Dial ${m.id} changed`,
+      type: "RotaryDial",
+      value: v,
+      timestamp: new Date().toISOString()
+    };
+    sendEvent(m.id, "change", v, changePayload);
     lastAngle = currentAngle;
   });
 
@@ -3985,7 +3857,7 @@ function mountArrow(el, m) {
   if (m.styleChannel === "teal") el.classList.add("channelTeal");
   if (m.value > 0.5) el.classList.add("active");
 
-  // Parse payload from module configuration
+  // Parse payload from module configuration, or use default
   let payload = null;
   if (m.payload) {
     try {
@@ -3993,6 +3865,14 @@ function mountArrow(el, m) {
     } catch (e) {
       console.warn(`Invalid JSON payload for arrow ${m.id}:`, e);
     }
+  }
+  // Use default payload if none configured
+  if (!payload) {
+    payload = {
+      message: `Arrow ${m.id} interacted`,
+      type: "Arrow",
+      timestamp: new Date().toISOString()
+    };
   }
 
   // Prevent double-tap zoom on mobile for arrow buttons
@@ -4053,7 +3933,13 @@ function mountArrow(el, m) {
     ensureAudio();
     el.classList.add("pressed");
     playEtherealClick(600, 0.15);
-    sendEvent(m.id, "press", 1, payload);
+    // Always send payload (with default if none configured)
+    const pressPayload = payload || {
+      message: `Arrow ${m.id} pressed`,
+      type: "Arrow",
+      timestamp: new Date().toISOString()
+    };
+    sendEvent(m.id, "press", 1, pressPayload);
   });
 
   el.addEventListener("pointerup", () => {
@@ -4064,8 +3950,13 @@ function mountArrow(el, m) {
     } else {
       playEtherealClick(392, 0.2);
     }
-    // Send event with JSON payload if configured
-    sendEvent(m.id, "toggle", el.classList.contains("active") ? 1 : 0, payload);
+    // Always send payload (with default if none configured)
+    const togglePayload = payload || {
+      message: `Arrow ${m.id} toggled`,
+      type: "Arrow",
+      timestamp: new Date().toISOString()
+    };
+    sendEvent(m.id, "toggle", el.classList.contains("active") ? 1 : 0, togglePayload);
   });
 
   el.addEventListener("pointerleave", () => {

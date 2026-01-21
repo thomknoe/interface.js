@@ -36,6 +36,15 @@ body{
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Allow form elements to be interactive and selectable */
+input, select, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: auto;
+  pointer-events: auto;
+}
+
 /* Enhanced starfield background for space theme - more cosmic feel */
 body.theme-space::before{
   content:"";
@@ -154,7 +163,7 @@ body.theme-halftone::before{
 
 .wrap{ max-width:1400px; margin:0 auto; padding:14px; position:relative; z-index:1; }
 .panel{ padding:8px 0; }
-.hidden{ display:none; }
+.hidden{ display:none !important; }
 
 .wizardLayout{
   display:grid;
@@ -273,9 +282,19 @@ input[type="range"]{ width:180px; }
   .wizCell.sel{
     border-color: var(--accentTeal);
     border-style: solid;
-    border-width: 2px;
-    background: color-mix(in srgb, var(--accentTeal) 12%, transparent);
+    border-width: 3px;
+    background: color-mix(in srgb, var(--accentTeal) 15%, transparent);
     z-index:1;
+    box-shadow: 0 0 0 2px var(--accentTeal), 0 0 8px rgba(0, 255, 220, 0.4);
+    animation: pulseOutline 2s ease-in-out infinite;
+  }
+  @keyframes pulseOutline {
+    0%, 100% {
+      box-shadow: 0 0 0 2px var(--accentTeal), 0 0 8px rgba(0, 255, 220, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 3px var(--accentTeal), 0 0 12px rgba(0, 255, 220, 0.6);
+    }
   }
   .wizCell.sel::before{
     content:"";
@@ -283,8 +302,9 @@ input[type="range"]{ width:180px; }
     top:0;
     left:0;
     right:0;
-    height:3px;
+    height:4px;
     background:var(--accentTeal);
+    box-shadow: 0 2px 4px rgba(0, 255, 220, 0.3);
   }
   .wizCell.sel::after{
     content:attr(data-span);
@@ -294,7 +314,8 @@ input[type="range"]{ width:180px; }
     font-size:8px;
     color:var(--accentTeal);
     font-weight:bold;
-    opacity:0.8;
+    opacity:0.9;
+    text-shadow: 0 0 4px rgba(0, 255, 220, 0.5);
   }
 .wizTag{
   position:absolute; inset:0;

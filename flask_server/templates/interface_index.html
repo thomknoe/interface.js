@@ -78,7 +78,7 @@
                             </select>
                         </div>
 
-                        <div class="row">
+                        <div class="row" id="selChannelRow">
                             <label>Channel</label>
                             <select id="selChannel">
                                 <option value="teal">Teal</option>
@@ -86,12 +86,12 @@
                             </select>
                         </div>
 
-                        <div class="row">
+                        <div class="row" id="selPositionRow">
                             <label>X</label><input id="selX" type="number" min="0" value="0" style="width:50px;" />
                             <label>Y</label><input id="selY" type="number" min="0" value="0" style="width:50px;" />
                         </div>
 
-                        <div class="row">
+                        <div class="row" id="selSizeRow">
                             <label>W</label><input id="selW" type="number" min="1" value="1" style="width:50px;" />
                             <label>H</label><input id="selH" type="number" min="1" value="1" style="width:50px;" />
                         </div>
@@ -155,7 +155,7 @@
                             <input id="selCustomLabel" type="text" style="width:100px;" />
                         </div>
 
-                        <div class="row">
+                        <div class="row hidden" id="selValueRow">
                             <label>Value</label>
                             <input id="selValue" type="range" min="0" max="1" step="0.01" value="0.5" />
                         </div>
@@ -183,6 +183,18 @@
     </main>
 
     <script src="/static/interface.js"></script>
+    <script>
+        function setTab(which) {
+            const wiz = which === "wizard";
+            const interf = which === "interface";
+
+            document.getElementById("tabWizard").classList.toggle("active", wiz);
+            document.getElementById("tabInterface").classList.toggle("active", interf);
+
+            document.getElementById("panelWizard").classList.toggle("hidden", !wiz);
+            document.getElementById("panelInterface").classList.toggle("hidden", !interf);
+        }
+    </script>
 </body>
 
 </html>

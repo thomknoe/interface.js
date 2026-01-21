@@ -1,0 +1,1335 @@
+:root{
+  --bg: #000000;
+  --fg: #e0e0e0;
+  --accentTeal: #00ffdc;
+  --accentMagenta: #ff008c;
+  
+  --chassis: #0a0a0a;
+  --panelBorder: rgba(255,255,255,0.08);
+  --bevelLight: rgba(255,255,255,0.12);
+  --bevelDark: rgba(0,0,0,0.4);
+  
+  --tealGlow: rgba(0,255,220,0.20);
+  --magentaGlow: rgba(255,0,140,0.18);
+}
+
+*{ box-sizing:border-box; }
+html,body{ 
+  height:100%;
+  /* Prevent bounce scrolling */
+  overscroll-behavior: none;
+  /* Prevent double-tap zoom */
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+  letter-spacing: 0.02em;
+  font-size: 11px;
+  /* Prevent text selection that can trigger zoom */
+  -webkit-user-select: none;
+  user-select: none;
+  /* Prevent tap highlight */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Allow form elements to be interactive and selectable */
+input, select, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: auto;
+  pointer-events: auto;
+}
+
+/* Enhanced starfield background for space theme - more cosmic feel */
+body.theme-space::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background-image: 
+    radial-gradient(2px 2px at 15% 25%, white, transparent),
+    radial-gradient(1.5px 1.5px at 35% 45%, white, transparent),
+    radial-gradient(2px 2px at 55% 65%, white, transparent),
+    radial-gradient(1px 1px at 75% 15%, white, transparent),
+    radial-gradient(1.5px 1.5px at 85% 35%, white, transparent),
+    radial-gradient(1px 1px at 25% 75%, white, transparent),
+    radial-gradient(2px 2px at 45% 85%, white, transparent),
+    radial-gradient(1px 1px at 65% 55%, white, transparent),
+    radial-gradient(1.5px 1.5px at 95% 5%, white, transparent),
+    radial-gradient(1px 1px at 5% 95%, white, transparent);
+  background-size: 300% 300%;
+  background-position: 0% 0%;
+  opacity: 0.5;
+  pointer-events:none;
+  z-index:0;
+  animation: starfield 180s linear infinite;
+}
+@keyframes starfield {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+/* Enhanced grid pattern background for glitch theme - more ASCII/digital art feel */
+body.theme-glitch::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background-image: 
+    repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(0,0,0,0.04) 19px, rgba(0,0,0,0.04) 20px),
+    repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(0,0,0,0.04) 19px, rgba(0,0,0,0.04) 20px),
+    radial-gradient(circle at 10px 10px, rgba(0,0,0,0.02) 0.5px, transparent 0.5px);
+  background-size: 20px 20px, 20px 20px, 40px 40px;
+  pointer-events:none;
+  z-index:0;
+  opacity: 1;
+}
+
+/* Enhanced collage-like background for poem theme - fragmented aesthetic */
+body.theme-poem::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background: #fafafa; /* Lighter off-white background */
+  background-image: 
+    linear-gradient(45deg, transparent 48%, rgba(74,144,226,0.02) 49%, rgba(74,144,226,0.02) 51%, transparent 52%),
+    linear-gradient(-45deg, transparent 48%, rgba(255,182,193,0.02) 49%, rgba(255,182,193,0.02) 51%, transparent 52%);
+  background-size: 60px 60px, 80px 80px;
+  pointer-events:none;
+  z-index:0;
+  opacity: 1;
+}
+
+/* Subtle network/diagram lines background for network theme */
+body.theme-network::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background: #ffffff; /* Pure white background */
+  background-image: 
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(135,206,235,0.06) 39px, rgba(135,206,235,0.06) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(135,206,235,0.06) 39px, rgba(135,206,235,0.06) 40px);
+  background-size: 40px 40px;
+  pointer-events:none;
+  z-index:0;
+  opacity: 1;
+}
+
+/* Halftone dot pattern background for halftone theme - inspired by pixelated/halftone aesthetic */
+body.theme-halftone::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background: #000000; /* Pure black background */
+  background-image: 
+    radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0),
+    radial-gradient(circle at 18px 18px, rgba(255,255,255,0.12) 1px, transparent 0),
+    radial-gradient(circle at 34px 34px, rgba(255,255,255,0.1) 1px, transparent 0);
+  background-size: 20px 20px, 40px 40px, 60px 60px;
+  background-position: 0 0, 10px 10px, 20px 20px;
+  pointer-events:none;
+  z-index:0;
+  opacity: 1;
+}
+
+.top{
+  position:sticky; top:0;
+  display:flex; align-items:center; justify-content:center;
+  padding:10px 14px;
+  border-bottom:1px solid var(--panelBorder);
+  background: var(--chassis);
+  z-index:10;
+}
+.tabs{ display:flex; gap:4px; }
+.tab{
+  border:1px solid var(--panelBorder);
+  background:transparent;
+  color:var(--fg);
+  padding:6px 12px;
+  border-radius:0;
+  cursor:pointer;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+}
+.tab.active{
+  background: var(--chassis);
+  border-color: var(--accentTeal);
+  color: var(--accentTeal);
+}
+
+.wrap{ max-width:1400px; margin:0 auto; padding:14px; position:relative; z-index:1; }
+.panel{ padding:8px 0; }
+.hidden{ display:none !important; }
+
+.wizardLayout{
+  display:grid;
+  grid-template-columns: 280px 1fr 300px;
+  gap:14px;
+}
+@media (max-width: 1200px){
+  .wizardLayout{ grid-template-columns:1fr; }
+}
+@media (max-width: 768px){
+  .wizardLayout{ 
+    grid-template-columns:1fr; 
+    gap:10px;
+  }
+  .card{
+    padding:8px;
+  }
+}
+
+.card{
+  border:1px solid var(--panelBorder);
+  background: var(--chassis);
+  padding:12px;
+  border-radius:0;
+  position:relative;
+}
+.card::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:1px;
+  background:linear-gradient(90deg, transparent, var(--bevelLight), transparent);
+}
+
+.cardTitle{ 
+  opacity:0.7; 
+  margin-bottom:12px; 
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:0.15em;
+  color:var(--accentTeal);
+}
+
+.row{
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  margin:8px 0;
+}
+label{ opacity:0.6; font-size:10px; text-transform:uppercase; letter-spacing:0.1em; }
+
+input[type="text"], input[type="number"], select, textarea{
+  border:1px solid var(--panelBorder);
+  background: var(--chassis);
+  color: var(--fg);
+  padding:6px 8px;
+  border-radius:0;
+  font-size:11px;
+  font-family:inherit;
+}
+textarea{
+  resize:vertical;
+}
+input[type="number"]{ width:70px; }
+input[type="range"]{ width:180px; }
+
+.btn{
+  border:1px solid var(--panelBorder);
+  background: var(--chassis);
+  color: var(--fg);
+  padding:6px 12px;
+  border-radius:0;
+  cursor:pointer;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  transition: transform 150ms;
+  transform-origin: center;
+}
+/* Hover effects removed - buttons remain same size */
+.btn.ghost{ background: transparent; }
+
+.tiny{ font-size:10px; opacity:0.5; line-height:1.4; }
+.hint{ margin-top:10px; text-align:center; }
+
+  /* ---------- Wizard grid editor ---------- */
+  .wizGrid{
+    display:grid;
+    gap:4px;
+    padding:8px;
+    border-radius:0;
+    background: var(--chassis);
+    border: 1px solid var(--panelBorder);
+    width:100%;
+    min-height: 400px;
+    position:relative;
+  }
+  @media (max-width: 768px) {
+    .wizGrid{
+      min-height: 300px;
+    }
+  }
+  .wizCell{
+    border: 1px dashed var(--panelBorder);
+    border-radius:0;
+    cursor:pointer;
+    position:relative;
+    background:transparent;
+    min-width:0;
+    min-height:0;
+  }
+  .wizCell.occupied:not(.sel){
+    background: color-mix(in srgb, var(--panelBorder) 10%, transparent);
+    cursor:not-allowed;
+  }
+  .wizCell.sel{
+    border-color: var(--accentTeal);
+    border-style: solid;
+    border-width: 3px;
+    background: color-mix(in srgb, var(--accentTeal) 15%, transparent);
+    z-index:1;
+    box-shadow: 0 0 0 2px var(--accentTeal), 0 0 8px rgba(0, 255, 220, 0.4);
+    animation: pulseOutline 2s ease-in-out infinite;
+  }
+  @keyframes pulseOutline {
+    0%, 100% {
+      box-shadow: 0 0 0 2px var(--accentTeal), 0 0 8px rgba(0, 255, 220, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 3px var(--accentTeal), 0 0 12px rgba(0, 255, 220, 0.6);
+    }
+  }
+  .wizCell.sel::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:4px;
+    background:var(--accentTeal);
+    box-shadow: 0 2px 4px rgba(0, 255, 220, 0.3);
+  }
+  .wizCell.sel::after{
+    content:attr(data-span);
+    position:absolute;
+    top:2px;
+    right:2px;
+    font-size:8px;
+    color:var(--accentTeal);
+    font-weight:bold;
+    opacity:0.9;
+    text-shadow: 0 0 4px rgba(0, 255, 220, 0.5);
+  }
+.wizTag{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0.6;
+  user-select:none;
+  font-size:14px;
+}
+
+/* ---------- Interface: Console Chassis ---------- */
+.phoneFrame{
+  display:flex; justify-content:center;
+  align-items:center;
+  padding:10px 0;
+}
+  .surfaceRoot{
+    width: min(600px, 95vw);
+    height: min(800px, 85vh);
+    border-radius: 0;
+    background: var(--chassis);
+    position: relative;
+    overflow: hidden;
+    touch-action: none;
+    -ms-touch-action: none;
+    border: 1px solid var(--panelBorder);
+    /* Prevent zoom gestures */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (max-width: 768px) {
+    .surfaceRoot{
+      width: 95vw;
+      height: 85vh;
+    }
+  }
+
+/* Diagonal teal beam accent (optional) */
+.surfaceRoot::before{
+  content:"";
+  position:absolute;
+  top:-50%;
+  right:-20%;
+  width:200%;
+  height:200%;
+  background: linear-gradient(135deg, transparent 0%, var(--tealGlow) 48%, transparent 52%);
+  opacity:0.15;
+  pointer-events:none;
+  transform:rotate(15deg);
+}
+
+.consoleChassis{
+  position:absolute; inset:0;
+  display:grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+/* Module base */
+.module{
+  position:relative;
+  border-radius: 0;
+  background: var(--chassis);
+  border: 1px solid var(--panelBorder);
+  overflow:hidden;
+  min-width:0;
+  min-height:0;
+}
+
+/* ---------- PhosphorScreen (main display) ---------- */
+.phosphorScreen{
+  background: #001a15;
+  border: 2px solid var(--panelBorder);
+  position:relative;
+}
+.phosphorScreen::before{
+  content:"";
+  position:absolute; inset:0;
+  background: var(--accentTeal);
+  opacity:0.15;
+  mix-blend-mode: screen;
+}
+.phosphorScreen::after{
+  content:"";
+  position:absolute; inset:0;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,255,220,0.03) 1px, rgba(0,255,220,0.03) 2px);
+  pointer-events:none;
+  animation: scanline 8s linear infinite;
+}
+@keyframes scanline {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(20px); }
+}
+
+.phosphorContent{
+  position:absolute; inset:8px;
+  z-index:1;
+}
+
+/* Particle field mode */
+.phosphorParticle{
+  position:absolute;
+  background: var(--accentTeal);
+  border-radius:0; /* Square pixels instead of circles */
+  pointer-events:none;
+  animation: particleFlicker 3s ease-in-out infinite, particleMove var(--moveDuration, 6s) ease-in-out infinite;
+  image-rendering: pixelated; /* Pixelated rendering */
+  image-rendering: crisp-edges; /* Fallback for pixelated */
+}
+.phosphorParticle.small{
+  width:2px; height:2px;
+}
+.phosphorParticle.medium{
+  width:3px; height:3px;
+}
+.phosphorParticle.large{
+  width:4px; height:4px;
+}
+@keyframes particleFlicker {
+  0%, 100% { opacity:0.6; }
+  25% { opacity:1; }
+  50% { opacity:0.3; }
+  75% { opacity:0.8; }
+}
+@keyframes particleMove {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(var(--moveX1, 0), var(--moveY1, 0)); }
+  50% { transform: translate(var(--moveX2, 0), var(--moveY2, 0)); }
+  75% { transform: translate(var(--moveX3, 0), var(--moveY3, 0)); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Grid mode */
+.gridMode{
+  position:relative;
+  width:100%;
+  height:100%;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(0,255,220,0.1) 19px, rgba(0,255,220,0.1) 20px),
+    repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(0,255,220,0.1) 19px, rgba(0,255,220,0.1) 20px);
+}
+
+/* Flocking mode */
+.flockingCanvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+
+/* Custom image mode removed */
+
+/* Contour mode */
+.contourCanvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+  z-index:1;
+}
+
+/* ---------- ReadoutScreen (small telemetry) ---------- */
+.readoutScreen{
+  background: #001a15;
+  border: 1px solid var(--panelBorder);
+  padding:6px 8px;
+  font-family: ui-monospace, monospace;
+  font-size:9px;
+  line-height:1.4;
+  color: var(--accentTeal);
+  text-shadow: 0 0 4px var(--tealGlow);
+  position:relative;
+  overflow:hidden;
+}
+.readoutScreen::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,255,220,0.02) 1px, rgba(0,255,220,0.02) 2px);
+  pointer-events:none;
+}
+.readoutLine{
+  font-variant-numeric: tabular-nums;
+  letter-spacing:0.05em;
+  opacity:0.9;
+}
+
+/* ---------- GlyphTag (tiny label plate) ---------- */
+.glyphTag{
+  background: var(--accentTeal);
+  color: #000;
+  padding:4px 6px;
+  font-size:9px;
+  font-weight:bold;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  border: 2px solid var(--accentTeal);
+}
+
+/* ---------- ActionButton (magenta buttons) ---------- */
+.actionButton{
+  background: var(--chassis);
+  border: 1px solid var(--panelBorder);
+  cursor:pointer;
+  position:relative;
+  transition: transform 150ms;
+  transform-origin: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.actionButton::before{
+  content:"";
+  position:absolute;
+  inset:2px;
+  background: var(--accentMagenta);
+  opacity:0;
+  transition: opacity 100ms;
+}
+.actionButton.pressed::before{
+  opacity:0.4;
+}
+.actionButton.active::before{
+  opacity:0.3;
+}
+.actionButton.channelTeal::before{
+  background: var(--accentTeal);
+}
+.actionButton.channelTeal.active::before{
+  opacity:0.3;
+}
+/* Hover effects removed - buttons remain same size */
+.actionButton::after{
+  content:"●";
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%, -50%);
+  font-size: min(20px, 5vw, 5vh);
+  color: var(--accentMagenta);
+  opacity:0.7;
+  z-index:1;
+  aspect-ratio: 1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+  text-align:center;
+  width:1em;
+  height:1em;
+}
+.actionButton.channelTeal::after{
+  color: var(--accentTeal);
+}
+.actionButton.pressed::after{
+  opacity:1;
+  content:"◉";
+}
+/* Button outline only appears briefly on click (pressed), not on hover or active */
+.actionButton.pressed{
+  border-width: 2px;
+  border-color: var(--accentMagenta);
+}
+.actionButton.channelTeal.pressed{
+  border-color: var(--accentTeal);
+}
+
+/* ---------- ToggleSwitch ---------- */
+.toggleSwitch{
+  background: var(--chassis);
+  border: 1px solid var(--panelBorder);
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+}
+.toggleTrack{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%, -50%);
+  width:60%;
+  height:2px;
+  background: var(--panelBorder);
+}
+.toggleThumb{
+  position:absolute;
+  top:50%; left:20%;
+  transform:translate(-50%, -50%);
+  width:8px; height:8px;
+  background: var(--panelBorder);
+  border: 1px solid var(--panelBorder);
+  transition: left 150ms, background 150ms, border-color 150ms;
+}
+.toggleSwitch.on .toggleThumb{
+  left:80%;
+  background: var(--accentMagenta);
+  border-color: var(--accentMagenta);
+}
+.toggleSwitch.channelTeal.on .toggleThumb{
+  background: var(--accentTeal);
+  border-color: var(--accentTeal);
+}
+/* Hover effects only on devices with fine pointer (mouse), not touch devices */
+@media (hover: hover) and (pointer: fine) {
+  .toggleSwitch:hover .toggleThumb{
+    border-width: 2px;
+  }
+}
+
+/* ---------- Horizontal Slider (replaces FaderBank) ---------- */
+.horizontalSlider{
+  position:relative;
+  display:flex;
+  align-items:center;
+  padding:18px;
+  height:100%;
+}
+.horizontalSlider .sliderTrack{
+  position:relative;
+  width:100%;
+  height:1px;
+  background: var(--panelBorder);
+  border-radius:0;
+  /* Make track a positioning context for the thumb */
+}
+.horizontalSlider .sliderFill{
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  background: var(--accentMagenta);
+  max-width:100%;
+}
+.horizontalSlider.channelTeal .sliderFill{
+  background: var(--accentTeal);
+}
+.horizontalSlider .sliderThumb{
+  position:absolute;
+  top:50%;
+  left:0;
+  transform:translate(-50%, -50%);
+  width:12px;
+  height:12px;
+  background: var(--chassis);
+  border: 1px solid var(--accentMagenta);
+  cursor:grab;
+  z-index:2;
+  border-radius:0;
+  /* Positioned relative to .sliderTrack */
+}
+.horizontalSlider.channelTeal .sliderThumb{
+  border-color: var(--accentTeal);
+}
+.horizontalSlider .sliderThumb::before{
+  content:"";
+  position:absolute;
+  inset:3px;
+  background: var(--accentMagenta);
+  opacity:0.6;
+}
+.horizontalSlider.channelTeal .sliderThumb::before{
+  background: var(--accentTeal);
+}
+.horizontalSlider .sliderThumb:active{
+  cursor:grabbing;
+}
+
+/* ---------- Vertical Slider ---------- */
+.verticalSlider{
+  position:relative;
+  display:flex;
+  justify-content:center;
+  padding:18px;
+  width:100%;
+}
+.verticalSlider .sliderTrack{
+  position:relative;
+  height:100%;
+  width:1px;
+  background: var(--panelBorder);
+  border-radius:0;
+  /* Make track a positioning context for the thumb */
+}
+.verticalSlider .sliderFill{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  background: var(--accentMagenta);
+  max-height:100%;
+}
+.verticalSlider.channelTeal .sliderFill{
+  background: var(--accentTeal);
+}
+.verticalSlider .sliderThumb{
+  position:absolute;
+  left:50%;
+  top:0;
+  transform:translate(-50%, -50%);
+  width:12px;
+  height:12px;
+  background: var(--chassis);
+  border: 1px solid var(--accentMagenta);
+  cursor:grab;
+  z-index:2;
+  border-radius:0;
+  /* Positioned relative to .sliderTrack */
+}
+.verticalSlider.channelTeal .sliderThumb{
+  border-color: var(--accentTeal);
+}
+.verticalSlider .sliderThumb::before{
+  content:"";
+  position:absolute;
+  inset:3px;
+  background: var(--accentMagenta);
+  opacity:0.6;
+}
+.verticalSlider.channelTeal .sliderThumb::before{
+  background: var(--accentTeal);
+}
+.verticalSlider .sliderThumb:active{
+  cursor:grabbing;
+}
+
+/* ---------- RotaryDial (ring-shaped) ---------- */
+.rotaryDial{
+  position:relative;
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.dialRing{
+  position:relative;
+  width: 70%;
+  aspect-ratio: 1;
+  border: 2px solid var(--panelBorder);
+  border-radius:50%;
+  background: transparent;
+  transition: transform 50ms;
+  box-sizing: border-box;
+  /* Ensure it's always a circle by using container's smaller dimension */
+  max-width: 100%;
+  max-height: 100%;
+}
+/* Disable transition during dragging to prevent visual splitting */
+.rotaryDial.pressed .dialRing{
+  transition: none;
+}
+/* Ring border stays neutral - only the indicator (grab section) uses channel colors */
+.dialGrabSection{
+  position:absolute;
+  top:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:8px;
+  height:20%;
+  background: var(--accentMagenta);
+  border-radius:0;
+  cursor:grab;
+  transition: width 150ms, height 150ms;
+}
+.rotaryDial.channelTeal .dialGrabSection{
+  background: var(--accentTeal);
+}
+/* Hover effects only on devices with fine pointer (mouse), not touch devices */
+@media (hover: hover) and (pointer: fine) {
+  .rotaryDial:hover .dialGrabSection{
+    width:10px;
+  }
+}
+.rotaryDial:active .dialGrabSection{
+  cursor:grabbing;
+  width:12px;
+}
+
+/* ---------- Arrow ---------- */
+.arrow{
+  background: var(--chassis);
+  border: 1px solid var(--panelBorder);
+  position:relative;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition: transform 150ms;
+  transform-origin: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.arrow::before{
+  content:"";
+  position:absolute;
+  inset:2px;
+  background: var(--accentMagenta);
+  opacity:0;
+  transition: opacity 100ms;
+}
+.arrow.pressed::before{
+  opacity:0.4;
+}
+.arrow.active::before{
+  opacity:0.3;
+}
+.arrow.channelTeal::before{
+  background: var(--accentTeal);
+}
+.arrow.channelTeal.active::before{
+  opacity:0.3;
+}
+/* Hover effects removed - buttons remain same size */
+  
+/* Arrow outline only appears briefly on click (pressed), not on hover or active */
+.arrow.pressed{
+  border-width: 2px;
+  border-color: var(--accentMagenta);
+}
+.arrow.channelTeal.pressed{
+  border-color: var(--accentTeal);
+}
+.arrowShape{
+  width:0; 
+  height:0;
+  opacity:0.7;
+  transition: opacity 150ms;
+  position:relative;
+  z-index:1;
+}
+.arrow.active .arrowShape{
+  opacity:1;
+}
+/* Default arrow (magenta channel) - use accentMagenta color */
+.arrowShape[data-orientation="up"]{
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid var(--accentMagenta);
+}
+.arrowShape[data-orientation="right"]{
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 8px solid var(--accentMagenta);
+}
+.arrowShape[data-orientation="down"]{
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--accentMagenta);
+}
+.arrowShape[data-orientation="left"]{
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 8px solid var(--accentMagenta);
+}
+/* Arrow orientations - use channel colors based on styleChannel */
+.arrow.channelTeal .arrowShape[data-orientation="up"]{
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid var(--accentTeal);
+}
+.arrow.channelTeal .arrowShape[data-orientation="right"]{
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 8px solid var(--accentTeal);
+}
+.arrow.channelTeal .arrowShape[data-orientation="down"]{
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--accentTeal);
+}
+.arrow.channelTeal .arrowShape[data-orientation="left"]{
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 8px solid var(--accentTeal);
+}
+
+/* ---------- IndicatorPips / StatusTower ---------- */
+.indicatorPips{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:8px;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+}
+.indicatorPip{
+  width:6px;
+  height:6px;
+  background: var(--panelBorder);
+  border: 1px solid var(--panelBorder);
+  transition: background 200ms, border 200ms;
+}
+.indicatorPip.active{
+  background: var(--accentMagenta);
+  border-color: var(--accentMagenta);
+  animation: pipPulse 2s ease-in-out infinite;
+}
+.indicatorPips.channelTeal .indicatorPip.active{
+  background: var(--accentTeal);
+  border-color: var(--accentTeal);
+}
+/* Hover effects only on devices with fine pointer (mouse), not touch devices */
+@media (hover: hover) and (pointer: fine) {
+  .indicatorPip:hover{
+    border-width: 2px;
+  }
+}
+@keyframes pipPulse {
+  0%, 100% { opacity:1; }
+  50% { opacity:0.4; }
+}
+
+/* Interaction states */
+.module.interactive{
+  cursor:pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.module.locked{
+  opacity:0.35;
+  pointer-events:none;
+}
+.module.glow{
+  border-color: var(--accentTeal);
+  border-width: 2px;
+  background: color-mix(in srgb, var(--accentTeal) 10%, var(--chassis));
+}
+.module.glowMagenta{
+  border-color: var(--accentMagenta);
+  border-width: 2px;
+  background: color-mix(in srgb, var(--accentMagenta) 10%, var(--chassis));
+}
+
+/* ---------- Glitch Theme Overrides ---------- */
+/* Glitch theme uses universal accents - channel colors work via CSS variables */
+
+/* ---------- Poem Theme Overrides ---------- */
+/* Poem theme uses universal accents - channel colors work via CSS variables */
+
+/* Poem theme: Use gray outlines instead of solid fills, improve text contrast */
+body.theme-poem .card {
+  background: rgba(255,255,255,0.9) !important; /* Off-white with slight transparency */
+  border: 1px solid rgba(128,128,128,0.4) !important; /* Gray outline */
+}
+
+body.theme-poem .top {
+  background: rgba(255,255,255,0.95) !important;
+  border-bottom: 1px solid rgba(128,128,128,0.4) !important;
+}
+
+body.theme-poem .tab {
+  background: transparent !important;
+  border: 1px solid rgba(128,128,128,0.4) !important;
+  color: #2a2a2a !important; /* Dark text for contrast */
+}
+
+body.theme-poem .tab.active {
+  background: rgba(255,255,255,0.9) !important;
+  border-color: #4A90E2 !important; /* Blue accent */
+  color: #4A90E2 !important;
+}
+
+body.theme-poem .cardTitle {
+  color: #2a2a2a !important; /* Dark text for contrast */
+  opacity: 0.8 !important;
+}
+
+body.theme-poem label {
+  color: #2a2a2a !important; /* Dark text for contrast */
+  opacity: 0.7 !important;
+}
+
+body.theme-poem input[type="text"],
+body.theme-poem input[type="number"],
+body.theme-poem select,
+body.theme-poem textarea {
+  background: rgba(255,255,255,0.9) !important;
+  border: 1px solid rgba(128,128,128,0.4) !important; /* Gray outline */
+  color: #2a2a2a !important; /* Dark text for contrast */
+}
+
+body.theme-poem .btn {
+  background: rgba(255,255,255,0.9) !important;
+  border: 1px solid rgba(128,128,128,0.4) !important; /* Gray outline */
+  color: #2a2a2a !important; /* Dark text for contrast */
+}
+
+/* Hover effects removed - buttons remain same size */
+
+body.theme-poem .btn.ghost {
+  background: transparent !important;
+}
+
+body.theme-poem .module {
+  background: rgba(255,255,255,0.9) !important;
+  border: 1px solid rgba(128,128,128,0.4) !important; /* Gray outline */
+}
+
+body.theme-poem .wizGrid {
+  background: rgba(255,255,255,0.9) !important;
+  border: 1px solid rgba(128,128,128,0.4) !important; /* Gray outline */
+}
+
+body.theme-poem .wizCell {
+  border: 1px dashed rgba(128,128,128,0.3) !important;
+}
+
+body.theme-poem .wizCell.sel {
+  border-color: #4A90E2 !important; /* Blue accent */
+  background: rgba(74,144,226,0.08) !important;
+}
+
+body.theme-poem .tiny {
+  color: #2a2a2a !important; /* Dark text for contrast */
+  opacity: 0.6 !important;
+}
+
+/* Poem theme: Screen components get solid fills with contrasting content */
+body.theme-poem .phosphorScreen {
+  background: #1a1a1a !important; /* Dark gray/black fill */
+  border: 1px solid rgba(128,128,128,0.3) !important;
+}
+
+body.theme-poem .phosphorScreen::before {
+  background: #4A90E2 !important; /* Blue accent */
+  opacity: 0.1 !important;
+}
+
+body.theme-poem .phosphorScreen::after {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(74,144,226,0.05) 1px, rgba(74,144,226,0.05) 2px) !important;
+}
+
+body.theme-poem .phosphorParticle {
+  background: var(--accent) !important;
+}
+
+body.theme-poem .gridMode {
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(74,144,226,0.15) 19px, rgba(74,144,226,0.15) 20px),
+    repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(74,144,226,0.15) 19px, rgba(74,144,226,0.15) 20px) !important;
+}
+
+body.theme-poem .readoutScreen {
+  background: #1a1a1a !important; /* Dark gray/black fill */
+  border: 1px solid rgba(128,128,128,0.3) !important;
+  color: var(--accent) !important;
+}
+
+body.theme-poem .readoutScreen::before {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(74,144,226,0.03) 1px, rgba(74,144,226,0.03) 2px) !important;
+}
+
+body.theme-poem .readoutLine {
+  color: #4A90E2 !important; /* Blue text for contrast */
+}
+
+body.theme-poem .glyphTag {
+  background: #2a2a2a !important;
+  border: 1px solid rgba(128,128,128,0.3) !important;
+  color: #ffffff !important;
+}
+
+/* ---------- Network Theme Overrides ---------- */
+/* Network theme: Clean white with gray outlines, blue/green accents */
+body.theme-network .card {
+  background: rgba(255,255,255,0.95) !important; /* White with slight transparency */
+  border: 1px solid rgba(100,100,100,0.3) !important; /* Medium gray outline */
+}
+
+body.theme-network .top {
+  background: rgba(255,255,255,0.98) !important;
+  border-bottom: 1px solid rgba(100,100,100,0.3) !important;
+}
+
+body.theme-network .tab {
+  background: transparent !important;
+  border: 1px solid rgba(100,100,100,0.3) !important;
+  color: #2a2a2a !important; /* Dark text for contrast */
+}
+
+body.theme-network .tab.active {
+  background: rgba(255,255,255,0.95) !important;
+  border-color: #87CEEB !important; /* Light blue accent */
+  color: #87CEEB !important;
+}
+
+body.theme-network .cardTitle {
+  color: #2a2a2a !important; /* Dark text for contrast */
+  opacity: 0.8 !important;
+}
+
+body.theme-network label {
+  color: #2a2a2a !important; /* Dark text for contrast */
+  opacity: 0.7 !important;
+}
+
+body.theme-network input[type="text"],
+body.theme-network input[type="number"],
+body.theme-network select,
+body.theme-network textarea {
+  background: rgba(255,255,255,0.95) !important;
+  border: 1px solid rgba(100,100,100,0.3) !important; /* Medium gray outline */
+  color: #2a2a2a !important; /* Dark text for contrast */
+}
+
+body.theme-network .btn {
+  background: rgba(255,255,255,0.95) !important;
+  border: 1px solid rgba(100,100,100,0.3) !important; /* Medium gray outline */
+  color: #2a2a2a !important; /* Dark text for contrast */
+}
+
+/* Hover effects removed - buttons remain same size */
+
+body.theme-network .btn.ghost {
+  background: transparent !important;
+}
+
+body.theme-network .module {
+  background: rgba(255,255,255,0.95) !important;
+  border: 1px solid rgba(100,100,100,0.3) !important; /* Medium gray outline */
+}
+
+body.theme-network .wizGrid {
+  background: rgba(255,255,255,0.95) !important;
+  border: 1px solid rgba(100,100,100,0.3) !important; /* Medium gray outline */
+}
+
+body.theme-network .wizCell {
+  border: 1px dashed rgba(100,100,100,0.25) !important;
+}
+
+body.theme-network .wizCell.sel {
+  border-color: #87CEEB !important; /* Light blue accent */
+  background: rgba(135,206,235,0.1) !important;
+}
+
+body.theme-network .tiny {
+  color: #2a2a2a !important; /* Dark text for contrast */
+  opacity: 0.6 !important;
+}
+
+/* Network theme: Screen components get solid fills with contrasting content */
+body.theme-network .phosphorScreen {
+  background: #1a1a1a !important; /* Dark gray/black fill */
+  border: 1px solid rgba(100,100,100,0.3) !important;
+}
+
+body.theme-network .phosphorScreen::before {
+  background: #87CEEB !important; /* Light blue accent */
+  opacity: 0.12 !important;
+}
+
+body.theme-network .phosphorScreen::after {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(135,206,235,0.06) 1px, rgba(135,206,235,0.06) 2px) !important;
+}
+
+body.theme-network .phosphorParticle {
+  background: var(--accent) !important;
+}
+
+body.theme-network .gridMode {
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(135,206,235,0.15) 19px, rgba(135,206,235,0.15) 20px),
+    repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(135,206,235,0.15) 19px, rgba(135,206,235,0.15) 20px) !important;
+}
+
+body.theme-network .readoutScreen {
+  background: #1a1a1a !important; /* Dark gray/black fill */
+  border: 1px solid rgba(100,100,100,0.3) !important;
+  color: var(--accent) !important;
+}
+
+body.theme-network .readoutScreen::before {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(135,206,235,0.04) 1px, rgba(135,206,235,0.04) 2px) !important;
+}
+
+body.theme-network .readoutLine {
+  color: #87CEEB !important; /* Light blue text for contrast */
+}
+
+body.theme-network .glyphTag {
+  background: #2a2a2a !important;
+  border: 1px solid rgba(100,100,100,0.3) !important;
+  color: #ffffff !important;
+}
+
+/* Network theme now uses universal accents - no overrides needed */
+
+/* ---------- Halftone Theme Overrides ---------- */
+/* Halftone theme: Pure black/white monochromatic with halftone patterns */
+body.theme-halftone .card {
+  background: #0a0a0a !important; /* Very dark gray/black */
+  border: 1px solid rgba(255,255,255,0.2) !important; /* White outline for high contrast */
+}
+
+body.theme-halftone .top {
+  background: #0a0a0a !important;
+  border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+}
+
+body.theme-halftone .tab {
+  background: transparent !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  color: #ffffff !important; /* White text for contrast */
+}
+
+body.theme-halftone .tab.active {
+  background: #1a1a1a !important;
+  border-color: #ffffff !important; /* White accent */
+  color: #ffffff !important;
+}
+
+body.theme-halftone .cardTitle {
+  color: #ffffff !important; /* White text for contrast */
+  opacity: 0.9 !important;
+}
+
+body.theme-halftone label {
+  color: #ffffff !important; /* White text for contrast */
+  opacity: 0.8 !important;
+}
+
+body.theme-halftone input[type="text"],
+body.theme-halftone input[type="number"],
+body.theme-halftone select,
+body.theme-halftone textarea {
+  background: #1a1a1a !important; /* Dark gray fill */
+  border: 1px solid rgba(255,255,255,0.2) !important; /* White outline */
+  color: #ffffff !important; /* White text for contrast */
+}
+
+body.theme-halftone .btn {
+  background: #1a1a1a !important; /* Dark gray fill */
+  border: 1px solid rgba(255,255,255,0.2) !important; /* White outline */
+  color: #ffffff !important; /* White text for contrast */
+}
+
+/* Hover effects removed - buttons remain same size */
+
+body.theme-halftone .btn.ghost {
+  background: transparent !important;
+}
+
+body.theme-halftone .module {
+  background: #0a0a0a !important; /* Very dark gray/black */
+  border: 1px solid rgba(255,255,255,0.2) !important; /* White outline */
+}
+
+body.theme-halftone .wizGrid {
+  background: #0a0a0a !important; /* Very dark gray/black */
+  border: 1px solid rgba(255,255,255,0.2) !important; /* White outline */
+}
+
+body.theme-halftone .wizCell {
+  border: 1px dashed rgba(255,255,255,0.15) !important; /* White dashed outline */
+}
+
+body.theme-halftone .wizCell.sel {
+  border-color: #ffffff !important; /* White accent */
+  background: rgba(255,255,255,0.1) !important;
+}
+
+body.theme-halftone .tiny {
+  color: #ffffff !important; /* White text for contrast */
+  opacity: 0.7 !important;
+}
+
+/* Halftone theme: Screen components get solid dark fills with white/gray contrasting content */
+body.theme-halftone .phosphorScreen {
+  background: #000000 !important; /* Pure black fill */
+  border: 1px solid rgba(255,255,255,0.3) !important;
+}
+
+body.theme-halftone .phosphorScreen::before {
+  background: #ffffff !important; /* White accent */
+  opacity: 0.08 !important;
+}
+
+body.theme-halftone .phosphorScreen::after {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255,255,255,0.04) 1px, rgba(255,255,255,0.04) 2px) !important;
+}
+
+body.theme-halftone .phosphorParticle {
+  background: var(--accent) !important;
+}
+
+body.theme-halftone .gridMode {
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(255,255,255,0.12) 19px, rgba(255,255,255,0.12) 20px),
+    repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(255,255,255,0.12) 19px, rgba(255,255,255,0.12) 20px) !important;
+}
+
+body.theme-halftone .readoutScreen {
+  background: #000000 !important; /* Pure black fill */
+  border: 1px solid rgba(255,255,255,0.3) !important;
+  color: var(--accent) !important;
+}
+
+body.theme-halftone .readoutScreen::before {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255,255,255,0.03) 1px, rgba(255,255,255,0.03) 2px) !important;
+}
+
+body.theme-halftone .readoutLine {
+  color: #ffffff !important; /* White text for contrast */
+}
+
+body.theme-halftone .glyphTag {
+  background: #1a1a1a !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+  color: #ffffff !important;
+}
+
+/* Halftone theme now uses universal accents - no overrides needed */
