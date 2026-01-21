@@ -55,6 +55,9 @@ socketio = SocketIO(app, cors_allowed_origins="*", max_http_buffer_size=20 * 102
 # JSON message log (store last 100 messages)
 JSON_MESSAGES = deque(maxlen=100)
 
+# Store player info per session (sid -> player name)
+player_registry = {}
+
 # --- Canonical schema: single global surface state ---
 LATEST_STATE = {
     "v": 1,
@@ -93,6 +96,9 @@ def index():
 
 @socketio.on("connect")
 def on_connect():
+    # Register player with default name
+    player_registry[request.sid] = {"playerName": "Player", "connectedAt": datetime.now().isoformat()}
+    
     # Count total connected clients
     try:
         # Get all connected clients from the namespace
@@ -133,24 +139,99 @@ def wizard_push_state(data):
 
     emit("state", LATEST_STATE, broadcast=True, include_self=False)
 
+@socketio.on("player:update_name")
+def player_update_name(data):
+    """Handle player name updates."""
+    if not isinstance(data, dict):
+        return
+    
+    new_name = (data.get("name") or "Player").strip() or "Player"
+    if request.sid in player_registry:
+        player_registry[request.sid]["playerName"] = new_name
+    else:
+        player_registry[request.sid] = {"playerName": new_name, "connectedAt": datetime.now().isoformat()}
+    
+    print(f"Player name updated: {new_name} (session: {request.sid[:8]}...)")
+    
+    log_json_message({
+        "type": "player:update_name",
+        "player": new_name,
+        "timestamp": datetime.now().isoformat()
+    })
+
+@socketio.on("player:button_press")
+def player_button_press(data):
+    """Handle simplified button press messages."""
+    if not isinstance(data, dict):
+        return
+    
+    player_info = player_registry.get(request.sid, {"playerName": "Player"})
+    player_name = data.get("player") or player_info.get("playerName", "Player")
+    movement = data.get("movement", "unknown")
+    
+    print(f"{player_name}: {movement}")
+    
+    log_json_message({
+        "type": "player:button_press",
+        "player": player_name,
+        "movement": movement,
+        "timestamp": datetime.now().isoformat()
+    })
+    
+    # Broadcast to all other clients
+    emit("player:button_press", data, broadcast=True, include_self=False)
+
+@socketio.on("player:interaction")
+def player_interaction(data):
+    """Handle simplified player interaction messages (legacy format, still supported)."""
+    if not isinstance(data, dict):
+        return
+    
+    player_info = player_registry.get(request.sid, {"playerName": "Player"})
+    player_name = data.get("player") or player_info.get("playerName", "Player")
+    controller = data.get("controller", "controller")
+    controller_id = data.get("controllerId", "unknown")
+    interaction = data.get("interaction", "unknown")
+    value = data.get("value")
+    
+    print(f"[{player_name}] interacted with {controller} ({controller_id}): {interaction} = {value}")
+    
+    log_json_message({
+        "type": "player:interaction",
+        "player": player_name,
+        "controller": controller,
+        "controllerId": controller_id,
+        "interaction": interaction,
+        "value": value,
+        "timestamp": datetime.now().isoformat()
+    })
+    
+    # Broadcast interaction to all other clients
+    emit("player:interaction", data, broadcast=True, include_self=False)
+
 @socketio.on("user:module_event")
 def user_module_event(data):
     """
     Phone sends interaction events; wizard can optionally listen.
     We also update the server's stored module values (so late joiners sync).
     Now supports JSON payloads for programmable buttons.
+    Legacy format - still supported.
     """
     global LATEST_STATE
     if not isinstance(data, dict):
         print(f"WARNING: Invalid user:module_event data (not a dict): {data}")
         return
+    
+    player_info = player_registry.get(request.sid, {"playerName": "Player"})
+    player_name = player_info.get("playerName", "Player")
+    
     mid = data.get("id")
     value = data.get("value")
     etype = data.get("etype")  # "press" | "release" | "change" | "toggle"
     payload = data.get("payload")  # Optional JSON payload for programmable buttons
 
     # Print to console for debugging
-    print(f"Button Interaction: id={mid}, type={etype}, value={value}")
+    print(f"[{player_name}] Button Interaction: id={mid}, type={etype}, value={value}")
     if payload:
         print(f"   Payload: {json.dumps(payload, indent=2)}")
     else:
@@ -159,6 +240,7 @@ def user_module_event(data):
     # Log JSON message
     log_json_message({
         "type": "user:module_event",
+        "player": player_name,
         "id": mid,
         "etype": etype,
         "value": value,
@@ -183,6 +265,16 @@ def user_module_event(data):
         event_data["payload"] = payload
     
     emit("user:module_event", event_data, broadcast=True, include_self=False)
+
+@socketio.on("disconnect")
+def on_disconnect():
+    """Handle client disconnection and clean up player registry."""
+    if request.sid in player_registry:
+        player_name = player_registry[request.sid].get("playerName", "Player")
+        print(f"Player \"{player_name}\" disconnected (session: {request.sid[:8]}...)")
+        del player_registry[request.sid]
+    else:
+        print(f"Interface client disconnected (session: {request.sid[:8]}...)")
 
 def log_json_message(message):
     """Log a JSON message to the message queue."""

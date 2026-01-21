@@ -112,31 +112,143 @@ class EventManager {
   constructor(socket) {
     this.socket = socket;
     this.eventHandlers = new Map();
+    this.playerName = "Player"; // Default player name
   }
 
   /**
-   * Send a module event with optional JSON payload
+   * Set player name and notify server
+   * @param {string} name - Player name
+   */
+  setPlayerName(name) {
+    const trimmedName = (name || "").trim() || "Player";
+    this.playerName = trimmedName;
+    // Send player name update to server
+    this.socket.emit("player:update_name", { name: trimmedName });
+  }
+
+  /**
+   * Get current player name
+   * @returns {string} Player name
+   */
+  getPlayerName() {
+    return this.playerName;
+  }
+
+  /**
+   * Detect button direction based on button properties (Arrow orientation or label)
+   * @param {Object} module - Module object
+   * @returns {string} Direction: "up", "down", "left", "right", or null if not a directional button
+   */
+  detectButtonDirection(module) {
+    // Only handle buttons
+    const buttonTypes = ["trig", "ActionButton", "ToggleSwitch", "Arrow"];
+    if (!module || !buttonTypes.includes(module.type)) {
+      return null;
+    }
+
+    // For Arrow buttons, use the orientation property
+    if (module.type === "Arrow" && module.orientation) {
+      const orientation = module.orientation.toLowerCase();
+      if (["up", "down", "left", "right"].includes(orientation)) {
+        return orientation;
+      }
+    }
+
+    // Check if button has a direction property
+    if (module.direction) {
+      const direction = module.direction.toLowerCase();
+      if (["up", "down", "left", "right"].includes(direction)) {
+        return direction;
+      }
+    }
+
+    // Check label for direction indicators
+    if (module.label) {
+      const label = module.label.toLowerCase();
+      if (label.includes("up") || label === "↑" || label === "▲") return "up";
+      if (label.includes("down") || label === "↓" || label === "▼") return "down";
+      if (label.includes("left") || label === "←" || label === "◄") return "left";
+      if (label.includes("right") || label === "→" || label === "►") return "right";
+    }
+
+    // If it's an Arrow button but no orientation specified, default to "up"
+    if (module.type === "Arrow") {
+      return "up";
+    }
+
+    // For other buttons, return null (not a directional button)
+    return null;
+  }
+
+  /**
+   * Send a simplified button interaction message
+   * Only sends for button presses, ignores sliders/rotaries
    * @param {string} moduleId - Module ID
    * @param {string} eventType - Event type (press, release, change, toggle)
    * @param {number} value - Event value
-   * @param {Object} payload - Optional JSON payload to include
+   * @param {Object} payload - Optional JSON payload (ignored for simplified format)
+   * @param {string} moduleType - Module type
    */
-  sendModuleEvent(moduleId, eventType, value, payload = null) {
-    const eventData = {
-      id: moduleId,
-      etype: eventType,
-      value: value
-    };
-
-    // Add payload if provided
-    if (payload && typeof payload === "object") {
-      eventData.payload = payload;
+  sendModuleEvent(moduleId, eventType, value, payload = null, moduleType = null) {
+    // Only handle button press/toggle events, ignore sliders and rotaries
+    const buttonTypes = ["trig", "ActionButton", "ToggleSwitch", "Arrow"];
+    if (!buttonTypes.includes(moduleType)) {
+      // Not a button, don't send simplified message
+      return;
     }
 
-    // Debug logging
-    // Send event to server via socket
-    
-    this.socket.emit("user:module_event", eventData);
+    // Only send on press or toggle (when value becomes 1)
+    if (eventType !== "press" && eventType !== "toggle") {
+      return;
+    }
+
+    // Only send when button is pressed (value = 1)
+    if (value !== 1) {
+      return;
+    }
+
+    // Get module from state to determine direction
+    let module = null;
+    if (window.state) {
+      // Check layout first (canonical format), then modules
+      if (window.state.layout) {
+        module = window.state.layout.find(m => m.id === moduleId);
+      }
+      if (!module && window.state.modules) {
+        module = window.state.modules.find(m => m.id === moduleId);
+      }
+    }
+
+    if (!module) {
+      console.log(`[EventManager] Module not found for id: ${moduleId}`);
+      return;
+    }
+
+    const direction = this.detectButtonDirection(module);
+    if (!direction) {
+      // Not a directional button, skip
+      console.log(`[EventManager] No direction detected for module ${moduleId} (type: ${module.type})`);
+      return;
+    }
+
+    // Map direction to movement command
+    const directionMap = {
+      "up": "move_forward",
+      "down": "move_backward",
+      "left": "turn_left",
+      "right": "turn_right"
+    };
+    const movement = directionMap[direction] || direction;
+
+    // Send simplified message: just player name and movement
+    // Note: Socket.IO emit() handles the event name separately
+    const simplifiedMessage = {
+      player: this.playerName,
+      movement: movement
+    };
+
+    console.log(`[EventManager] Sending button press: ${this.playerName}: ${movement} (module: ${moduleId}, type: ${module.type})`);
+    this.socket.emit("player:button_press", simplifiedMessage);
   }
 
   /**
@@ -337,7 +449,8 @@ class BaseComponent {
         ? JSON.parse(this.module.payload) 
         : this.module.payload;
     }
-    this.eventManager.sendModuleEvent(this.module.id, eventType, value, payload);
+    const moduleType = this.module.type || this.module.moduleType || null;
+    this.eventManager.sendModuleEvent(this.module.id, eventType, value, payload, moduleType);
   }
 
   /**
@@ -539,6 +652,8 @@ $("tabInterface").addEventListener("click", () => {
 // ---------- socket ----------
 const socket = io();
 let state = null;
+// Make state globally accessible for EventManager
+window.state = null;
 
 // Status indicator removed
 
@@ -564,10 +679,35 @@ socket.on("state", (s) => {
   // Update state through StateManager for proper validation
   stateManager.setState(s);
   state = stateManager.getState();
+  window.state = state; // Make globally accessible
   applyThemeFromState(state);
   hydrateWizard(state);
   renderSurface(state);
 });
+
+// ---------- player name management ----------
+const playerNameInput = document.getElementById("playerNameInput");
+if (playerNameInput) {
+  // Set initial player name
+  eventManager.setPlayerName("Player");
+  
+  // Handle player name input changes
+  let nameUpdateTimeout = null;
+  playerNameInput.addEventListener("input", (e) => {
+    const name = e.target.value;
+    // Debounce updates to avoid excessive server messages
+    clearTimeout(nameUpdateTimeout);
+    nameUpdateTimeout = setTimeout(() => {
+      eventManager.setPlayerName(name);
+    }, 300); // Update 300ms after user stops typing
+  });
+  
+  // Also update on blur (when user leaves the field)
+  playerNameInput.addEventListener("blur", (e) => {
+    clearTimeout(nameUpdateTimeout);
+    eventManager.setPlayerName(e.target.value);
+  });
+}
 
 // ---------- audio (ethereal, abstract, joyous) ----------
 let audioEnabled = false;
@@ -2794,8 +2934,24 @@ function renderSurface(s) {
   });
 }
 
-function sendEvent(id, etype, value, payload = null) {
-  eventManager.sendModuleEvent(id, etype, value, payload);
+function sendEvent(id, etype, value, payload = null, moduleType = null) {
+  // If moduleType not provided, try to look it up from state
+  if (!moduleType) {
+    let module = null;
+    if (state) {
+      // Check layout first (canonical format), then modules
+      if (state.layout) {
+        module = state.layout.find(m => m.id === id);
+      }
+      if (!module && state.modules) {
+        module = state.modules.find(m => m.id === id);
+      }
+    }
+    if (module) {
+      moduleType = module.type || module.moduleType || null;
+    }
+  }
+  eventManager.sendModuleEvent(id, etype, value, payload, moduleType);
 }
 
 function glowPulse(el, isMagenta = false) {

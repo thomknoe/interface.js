@@ -39,8 +39,8 @@ const server = http.createServer(app);
    ===================================================== */
 const wss = new WebSocket.Server({ server });
 
-// Store all connected clients
-let interfaceClients = new Set();
+// Store all connected clients with player info
+let interfaceClients = new Map(); // ws -> { playerName, connectedAt }
 let unrealClients = new Set();
 
 // JSON message log (store last 100 messages)
@@ -61,7 +61,7 @@ function logJsonMessage(message) {
 
 function broadcastToInterfaceClients(data) {
   const message = JSON.stringify(data);
-  interfaceClients.forEach(client => {
+  interfaceClients.forEach((clientInfo, client) => {
     if (client.readyState === WebSocket.OPEN) {
       try {
         client.send(message);
@@ -118,7 +118,11 @@ wss.on("connection", (ws, req) => {
     });
   } else {
     // Interface client
-    interfaceClients.add(ws);
+    const clientInfo = {
+      playerName: "Player",
+      connectedAt: new Date().toISOString()
+    };
+    interfaceClients.set(ws, clientInfo);
     console.log(`Interface client connected: ${req.socket.remoteAddress || 'unknown'} (Total: ${interfaceClients.size})`);
 
     // Send initial state
@@ -162,6 +166,7 @@ wss.on("connection", (ws, req) => {
     ws.on("message", (msg) => {
       try {
         const data = JSON.parse(msg.toString());
+        const clientInfo = interfaceClients.get(ws) || { playerName: "Player" };
         
         // Handle different message types
         if (data.type === "wizard:push_state") {
@@ -176,22 +181,84 @@ wss.on("connection", (ws, req) => {
             type: "state",
             data: data.state
           });
+        } else if (data.type === "player:update_name") {
+          // Update player name for this client
+          const newName = (data.name || "Player").trim() || "Player";
+          clientInfo.playerName = newName;
+          interfaceClients.set(ws, clientInfo);
+          console.log(`Player name updated: ${newName} (Total players: ${interfaceClients.size})`);
+          
+          logJsonMessage({
+            type: "player:update_name",
+            player: newName,
+            timestamp: new Date().toISOString()
+          });
+        } else if (data.type === "player:button_press") {
+          // Simplified button press message
+          const playerName = data.player || clientInfo.playerName;
+          const movement = data.movement || "unknown";
+
+          console.log(`${playerName}: ${movement}`);
+
+          logJsonMessage({
+            type: "player:button_press",
+            player: playerName,
+            movement: movement,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Broadcast to other interface clients
+          broadcastToInterfaceClients({
+            type: "player:button_press",
+            data: {
+              player: playerName,
+              movement: movement
+            }
+          });
+        } else if (data.type === "player:interaction") {
+          // Legacy interaction message (still supported)
+          const playerName = data.player || clientInfo.playerName;
+          const controller = data.controller || "controller";
+          const controllerId = data.controllerId || "unknown";
+          const interaction = data.interaction || "unknown";
+          const value = data.value;
+
+          console.log(`[${playerName}] interacted with ${controller} (${controllerId}): ${interaction} = ${value}`);
+
+          logJsonMessage({
+            type: "player:interaction",
+            player: playerName,
+            controller: controller,
+            controllerId: controllerId,
+            interaction: interaction,
+            value: value,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Broadcast interaction to other interface clients
+          broadcastToInterfaceClients({
+            type: "player:interaction",
+            data: {
+              player: playerName,
+              controller: controller,
+              controllerId: controllerId,
+              interaction: interaction,
+              value: value
+            }
+          });
         } else if (data.type === "user:module_event") {
+          // Legacy format - still supported but log with player info
           const mid = data.id;
           const value = data.value;
           const etype = data.etype;
           const payload = data.payload;
+          const playerName = clientInfo.playerName;
 
-          // Print to console for debugging
-          console.log(`Button Interaction: id=${mid}, type=${etype}, value=${value}`);
-          if (payload) {
-            console.log(`   Payload: ${JSON.stringify(payload, null, 2)}`);
-          } else {
-            console.log(`   Payload: (none)`);
-          }
+          console.log(`[${playerName}] Button Interaction: id=${mid}, type=${etype}, value=${value}`);
 
           logJsonMessage({
             type: "user:module_event",
+            player: playerName,
             id: mid,
             etype: etype,
             value: value,
@@ -216,6 +283,10 @@ wss.on("connection", (ws, req) => {
     });
 
     ws.on("close", () => {
+      const clientInfo = interfaceClients.get(ws);
+      if (clientInfo) {
+        console.log(`Player "${clientInfo.playerName}" disconnected (Total: ${interfaceClients.size - 1})`);
+      }
       interfaceClients.delete(ws);
       console.log(`Interface client disconnected (Total: ${interfaceClients.size})`);
     });
@@ -230,10 +301,21 @@ wss.on("connection", (ws, req) => {
    HEARTBEAT PING (ANTI-FREEZE)
    ===================================================== */
 const interval = setInterval(() => {
-  [...interfaceClients, ...unrealClients].forEach(ws => {
+  // Check interface clients
+  interfaceClients.forEach((clientInfo, ws) => {
     if (ws.isAlive === false) {
-      if (interfaceClients.has(ws)) interfaceClients.delete(ws);
-      if (unrealClients.has(ws)) unrealClients.delete(ws);
+      interfaceClients.delete(ws);
+      try { ws.terminate(); } catch {}
+      return;
+    }
+    ws.isAlive = false;
+    try { ws.ping(); } catch {}
+  });
+  
+  // Check unreal clients
+  unrealClients.forEach(ws => {
+    if (ws.isAlive === false) {
+      unrealClients.delete(ws);
       try { ws.terminate(); } catch {}
       return;
     }

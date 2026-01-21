@@ -31,6 +31,10 @@
             emit('state', data.data);
           } else if (data.type === 'user:module_event') {
             emit('user:module_event', data.data);
+          } else if (data.type === 'player:button_press') {
+            emit('player:button_press', data.data);
+          } else if (data.type === 'player:interaction') {
+            emit('player:interaction', data.data);
           } else if (data.type === 'json_message') {
             emit('json_message', data.data);
           }
